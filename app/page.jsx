@@ -28,7 +28,15 @@ export default function Home() {
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await fetch('https://fakestoreapi.com/products?limit=12')
+      const response = await fetch('https://fakestoreapi.com/products?limit=12', {
+        // Add timeout to prevent long waiting times
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      })
+      
+      if (!response.ok) {
+        throw new Error(`API responded with status: ${response.status}`)
+      }
+      
       let data = await response.json()
       
       // Add some demo properties for display purposes
@@ -50,11 +58,38 @@ export default function Home() {
       setProducts(data)
       // Apply current filters to the newly fetched products
       applyFilters(data, filters)
-      setLoading(false)
     } catch (error) {
       console.error('Error fetching products:', error)
+      // Provide fallback data when API fails
+      const fallbackData = generateFallbackProducts(12) // Generate 12 fallback products
+      setProducts(fallbackData)
+      applyFilters(fallbackData, filters)
+    } finally {
       setLoading(false)
     }
+  }
+  
+  // Function to generate fallback products when API is down
+  const generateFallbackProducts = (count) => {
+    return Array.from({ length: count }, (_, index) => ({
+      id: index + 1,
+      title: `Fallback Product ${index + 1}`,
+      price: 19.99 + (index * 10),
+      description: 'This is a fallback product while the API is unavailable',
+      image: 'https://via.placeholder.com/150',
+      category: ['clothing', 'electronics', 'jewelry', 'accessories'][index % 4],
+      new: index % 5 === 0,
+      outOfStock: index % 7 === 0,
+      idealFor: ['Men', 'Women', 'Baby & Kids'][index % 3],
+      occasion: ['Casual', 'Formal', 'Business'][index % 3],
+      fabric: ['Cotton', 'Silk', 'Wool', 'Synthetic'][index % 4],
+      work: ['Embroidery', 'Print', 'Handloom'][index % 3],
+      segment: ['Premium', 'Mid-range', 'Budget'][index % 3],
+      suitableFor: ['Daily Wear', 'Party Wear', 'Office Wear', 'Outdoor Activities'][index % 4],
+      rawMaterials: ['Organic', 'Recycled', 'Natural', 'Synthetic'][index % 4],
+      pattern: ['Solid', 'Striped', 'Checkered', 'Printed', 'Floral'][index % 5],
+      customizable: index % 2 === 0
+    }))
   }
   
   // Function to apply filters to products
